@@ -212,7 +212,7 @@ export class HandTracker {
    */
   _computeBloom(landmarks) {
     const wrist        = landmarks[0];
-    const fingerStates = FINGER_TIPS.map(tipIdx => landmarks[tipIdx].y < wrist.y - OPEN_Y_THRESHOLD);
+    const fingerStates = FINGER_TIPS.map(tipIdx => landmarks[tipIdx].y > wrist.y + OPEN_Y_THRESHOLD);
     const openCount    = fingerStates.filter(Boolean).length;
     const bloom        = openCount / FINGER_TIPS.length;  // 0 | 0.25 | 0.5 | 0.75 | 1.0
 
