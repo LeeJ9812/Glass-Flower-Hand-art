@@ -31,9 +31,9 @@ const OPEN_THRESHOLD = 0.6;
 // 모바일 감지: modelComplexity 0으로 낮춰 CPU 부하 절감
 const IS_MOBILE = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-// 카메라 해상도 (모바일은 720p로 제한)
-const CAM_WIDTH  = IS_MOBILE ? 1280 : 1920;
-const CAM_HEIGHT = IS_MOBILE ?  720 : 1080;
+// 카메라 해상도 (모바일 640×360, PC 1280×720)
+const CAM_WIDTH  = IS_MOBILE ?  640 : 1280;
+const CAM_HEIGHT = IS_MOBILE ?  360 :  720;
 
 // ─────────────────────────────────────────────
 // 카메라 권한 에러 메시지

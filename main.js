@@ -76,6 +76,13 @@ let demoMouseDown = false;
 let demoKeyDown   = false;
 let demoRafId     = null;
 
+// ── 카메라 미리보기 ──────────────────────────────
+let previewVisible = true;
+let tapTimes       = [];   // 모바일 3탭 감지용
+
+const PV_W = IS_MOBILE ? 160 : 200;
+const PV_H = IS_MOBILE ?  90 : 113;
+
 // ─────────────────────────────────────────────
 // Entry Point
 // ─────────────────────────────────────────────
@@ -96,8 +103,8 @@ async function main() {
   tracker = new HandTracker({
     onHandsDetected:        handleHandsDetected,
     maxHands:               2,
-    minDetectionConfidence: 0.7,
-    minTrackingConfidence:  0.5,
+    minDetectionConfidence: 0.3,
+    minTrackingConfidence:  0.3,
   });
 
   setLoadingText('손 인식 모델 로드 중...');
@@ -118,9 +125,9 @@ async function main() {
 
 /**
  * @param {Array<{handedness:string,bloom:number,wrist:{x:number,y:number},isOpen:boolean}>} handsData
- * @param {CanvasImageSource|null} _image  (미사용 — 꽃이 전체화면을 가림)
+ * @param {CanvasImageSource|null} image
  */
-function handleHandsDetected(handsData, _image) {
+function handleHandsDetected(handsData, image) {
   const now = performance.now();
 
   // ── FPS 계산 ─────────────────────────────────────
@@ -151,6 +158,9 @@ function handleHandsDetected(handsData, _image) {
   if (handsData.length > 0) {
     targetBloom = Math.max(...handsData.map(h => h.bloom));
   }
+
+  // ── 미리보기 업데이트 ─────────────────────────────
+  updatePreview(image, handsData.length > 0);
 
   // ── lerp + 렌더링 ────────────────────────────────
   renderBloom(false, handsData.length);
@@ -285,6 +295,84 @@ function stopPreviousTracker() {
 }
 
 // ─────────────────────────────────────────────
+// Camera Preview
+// ─────────────────────────────────────────────
+
+function createPreviewPanel() {
+  const panel = document.createElement('div');
+  panel.id = 'preview-panel';
+  panel.style.cssText = [
+    'position:fixed', 'bottom:20px', 'left:20px', 'z-index:9999',
+    'border-radius:8px', 'overflow:hidden', 'border:2px solid #fff',
+    'background:#000',
+  ].join(';');
+
+  const canvas = document.createElement('canvas');
+  canvas.id     = 'preview-canvas';
+  canvas.width  = PV_W;
+  canvas.height = PV_H;
+  canvas.style.cssText = `display:block;width:${PV_W}px;height:${PV_H}px;`;
+
+  const status = document.createElement('div');
+  status.id = 'preview-status';
+  status.textContent = 'SEARCHING...';
+  status.style.cssText = [
+    'font-family:monospace', 'font-size:9px', 'font-weight:bold',
+    'letter-spacing:0.08em', 'color:#fff',
+    'background:rgba(0,0,0,0.65)', 'text-align:center', 'padding:3px 0',
+  ].join(';');
+
+  panel.appendChild(canvas);
+  panel.appendChild(status);
+  document.body.appendChild(panel);
+}
+
+/**
+ * @param {CanvasImageSource|null} image
+ * @param {boolean} hasHands
+ */
+function updatePreview(image, hasHands) {
+  if (!previewVisible) return;
+  const panel  = /** @type {HTMLElement} */         (document.getElementById('preview-panel'));
+  const canvas = /** @type {HTMLCanvasElement} */   (document.getElementById('preview-canvas'));
+  const status = /** @type {HTMLElement} */         (document.getElementById('preview-status'));
+  if (!panel || !canvas || !status) return;
+
+  const ctx = canvas.getContext('2d');
+
+  if (image) {
+    if (tracker?.facingMode === 'user') {
+      ctx.save();
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+      ctx.restore();
+    } else {
+      ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+    }
+  } else {
+    ctx.fillStyle = '#111';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+
+  if (hasHands) {
+    panel.style.borderColor = '#00ff00';
+    status.textContent      = 'HAND DETECTED';
+    status.style.color      = '#00ff00';
+  } else {
+    panel.style.borderColor = '#fff';
+    status.textContent      = 'SEARCHING...';
+    status.style.color      = '#fff';
+  }
+}
+
+function togglePreview() {
+  previewVisible = !previewVisible;
+  const panel = document.getElementById('preview-panel');
+  if (panel) panel.style.display = previewVisible ? 'block' : 'none';
+}
+
+// ─────────────────────────────────────────────
 // Demo Mode
 // ─────────────────────────────────────────────
 
@@ -319,6 +407,13 @@ function startDemoMode() {
   setMirrorMode(false);
 
   document.getElementById('demo-label').style.display = 'block';
+
+  // 미리보기를 DEMO 상태로 표시
+  updatePreview(null, false);
+  const pvStatus = document.getElementById('preview-status');
+  const pvPanel  = document.getElementById('preview-panel');
+  if (pvStatus) { pvStatus.textContent = 'DEMO MODE'; pvStatus.style.color = 'orange'; }
+  if (pvPanel)  pvPanel.style.borderColor = 'orange';
 
   if (demoRafId) cancelAnimationFrame(demoRafId);
   demoRafId = requestAnimationFrame(demoLoop);
@@ -498,15 +593,28 @@ window.addEventListener('keydown', (e) => {
   if ((e.key === 'd' || e.key === 'D') && !e.repeat) {
     if (demoMode) stopDemoMode(); else startDemoMode();
   }
+  if ((e.key === 'p' || e.key === 'P') && !e.repeat) togglePreview();
 });
 window.addEventListener('keyup', (e) => {
   if (e.code === 'Space') demoKeyDown = false;
+});
+
+// ── 모바일 3탭으로 미리보기 토글 ─────────────────
+document.addEventListener('touchend', () => {
+  const now = Date.now();
+  tapTimes.push(now);
+  tapTimes = tapTimes.filter(t => now - t < 500);
+  if (tapTimes.length >= 3) {
+    tapTimes = [];
+    togglePreview();
+  }
 });
 
 // ─────────────────────────────────────────────
 // Bootstrap
 // ─────────────────────────────────────────────
 
+createPreviewPanel();
 createDemoLabel();
 createDebugPanel();
 main().catch(showError);
