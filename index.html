@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Flower Hand Art</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- MediaPipe Hands CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <!-- 세로 화면 감지 오버레이 -->
+  <div id="rotate-overlay" class="rotate-overlay" aria-live="polite">
+    <div class="rotate-content">
+      <div class="rotate-icon">&#8635;</div>
+      <p>기기를 가로로 돌려주세요</p>
+    </div>
+  </div>
+
+  <!-- 메인 컨테이너 -->
+  <div id="app" class="app-container">
+
+    <!-- 히든 비디오 엘리먼트 (MediaPipe 입력용) -->
+    <video id="input-video" class="input-video" playsinline muted></video>
+
+    <!-- Canvas 레이어 래퍼 -->
+    <div id="canvas-wrapper" class="canvas-wrapper">
+      <!-- 꽃 전체화면 렌더링 -->
+      <canvas id="flower-canvas" class="canvas-layer" aria-label="꽃 렌더링"></canvas>
+    </div>
+
+    <!-- UI 컨트롤 -->
+    <div class="controls" role="toolbar" aria-label="카메라 컨트롤">
+      <button id="btn-camera-switch" class="ctrl-btn" title="카메라 전환" aria-label="전면/후면 카메라 전환">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 7h-3a2 2 0 0 1-2-2v-2"/>
+          <path d="M14 2l3 3-3 3"/>
+          <rect x="2" y="7" width="14" height="14" rx="2"/>
+          <circle cx="9" cy="14" r="3"/>
+        </svg>
+      </button>
+
+      <button id="btn-fullscreen" class="ctrl-btn" title="전체화면" aria-label="전체화면 전환">
+        <svg id="icon-expand" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 3 21 3 21 9"/>
+          <polyline points="9 21 3 21 3 15"/>
+          <line x1="21" y1="3" x2="14" y2="10"/>
+          <line x1="3" y1="21" x2="10" y2="14"/>
+        </svg>
+        <svg id="icon-compress" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none;">
+          <polyline points="4 14 10 14 10 20"/>
+          <polyline points="20 10 14 10 14 4"/>
+          <line x1="10" y1="14" x2="3" y2="21"/>
+          <line x1="21" y1="3" x2="14" y2="10"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- 가이드 오버레이 (첫 진입 시 표시) -->
+    <div id="guide-overlay" class="guide-overlay" aria-live="polite">
+      <div class="guide-content">
+        <span class="guide-hand" role="img" aria-label="손">✋</span>
+        <p class="guide-text">손을 카메라에 보여주세요</p>
+      </div>
+    </div>
+
+    <!-- 로딩 오버레이 -->
+    <div id="loading-overlay" class="loading-overlay">
+      <div class="loading-content">
+        <div class="loading-spinner"></div>
+        <p id="loading-text">카메라 초기화 중...</p>
+      </div>
+    </div>
+
+    <!-- 오류 오버레이 -->
+    <div id="error-overlay" class="error-overlay" style="display:none;">
+      <div class="error-content">
+        <p id="error-text"></p>
+        <button id="btn-retry" class="ctrl-btn">다시 시도</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="main.js"></script>
+</body>
+</html>
