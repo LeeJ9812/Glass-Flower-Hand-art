@@ -11,12 +11,14 @@
 // 상수
 // ─────────────────────────────────────────────
 
-// 검지(8) 중지(12) 약지(16) 소지(20) tip 인덱스
-const FINGER_TIPS = [8, 12, 16, 20];
-
-// tip.y 가 wrist.y 보다 이 값 이상 위에 있으면 펼쳐진 것으로 판정
-// (정규화 좌표 기준, 위가 0 아래가 1)
-const OPEN_Y_THRESHOLD = 0.05;
+// 검지·중지·약지·소지의 [tip, pip] 쌍
+// tip이 pip보다 손목에서 더 멀면 펼쳐진 것으로 판정
+const FINGER_JOINTS = [
+  { tip:  8, pip:  6 },  // 검지
+  { tip: 12, pip: 10 },  // 중지
+  { tip: 16, pip: 14 },  // 약지
+  { tip: 20, pip: 18 },  // 소지
+];
 
 // 모바일 감지
 const IS_MOBILE = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -211,10 +213,15 @@ export class HandTracker {
    * @returns {{ bloom: number, fingerStates: boolean[] }}
    */
   _computeBloom(landmarks) {
-    const wrist        = landmarks[0];
-    const fingerStates = FINGER_TIPS.map(tipIdx => landmarks[tipIdx].y > wrist.y + OPEN_Y_THRESHOLD);
-    const openCount    = fingerStates.filter(Boolean).length;
-    const bloom        = openCount / FINGER_TIPS.length;  // 0 | 0.25 | 0.5 | 0.75 | 1.0
+    const wrist = landmarks[0];
+    const dist  = (a, b) => Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2);
+
+    const fingerStates = FINGER_JOINTS.map(({ tip, pip }) =>
+      dist(landmarks[tip], wrist) > dist(landmarks[pip], wrist)
+    );
+
+    const openCount = fingerStates.filter(Boolean).length;
+    const bloom     = openCount / FINGER_JOINTS.length;  // 0 | 0.25 | 0.5 | 0.75 | 1.0
 
     return { bloom, fingerStates };
   }
