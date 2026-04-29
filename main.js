@@ -161,6 +161,7 @@ function handleHandsDetected(handsData, image) {
 
   // ── 미리보기 업데이트 ─────────────────────────────
   updatePreview(image, handsData.length > 0);
+  updatePreviewDebug(currentBloom, handsData[0]?.fingerStates ?? null);
 
   // ── lerp + 렌더링 ────────────────────────────────
   renderBloom(false, handsData.length);
@@ -322,8 +323,18 @@ function createPreviewPanel() {
     'background:rgba(0,0,0,0.65)', 'text-align:center', 'padding:3px 0',
   ].join(';');
 
+  const debug = document.createElement('div');
+  debug.id = 'preview-debug';
+  debug.style.cssText = [
+    'font-family:monospace', 'font-size:8px', 'color:#aaa',
+    'background:rgba(0,0,0,0.7)', 'text-align:center',
+    'padding:2px 4px', 'line-height:1.5',
+  ].join(';');
+  debug.innerHTML = 'bloom: --<br>검지:- 중지:- 약지:- 소지:-';
+
   panel.appendChild(canvas);
   panel.appendChild(status);
+  panel.appendChild(debug);
   document.body.appendChild(panel);
 }
 
@@ -370,6 +381,20 @@ function togglePreview() {
   previewVisible = !previewVisible;
   const panel = document.getElementById('preview-panel');
   if (panel) panel.style.display = previewVisible ? 'block' : 'none';
+}
+
+/**
+ * @param {number} bloom
+ * @param {boolean[]|null} fingerStates  [검지, 중지, 약지, 소지]
+ */
+function updatePreviewDebug(bloom, fingerStates) {
+  const el = document.getElementById('preview-debug');
+  if (!el) return;
+  const labels = ['검지', '중지', '약지', '소지'];
+  const fingerStr = fingerStates
+    ? labels.map((l, i) => `${l}:${fingerStates[i] ? 'O' : 'X'}`).join(' ')
+    : labels.map(l => `${l}:-`).join(' ');
+  el.innerHTML = `bloom: ${bloom.toFixed(2)}<br>${fingerStr}`;
 }
 
 // ─────────────────────────────────────────────
